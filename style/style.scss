@@ -1,40 +1,42 @@
 @import "_vars";
 @import "_mixins";
-@import "spinkit";
+@import "spinkit/spinkit";
 
 @import "panel";
 @import "sidebar";
 @import "grid";
 @import "ui";
+@import "script";
+@import "codemirror";
 
 @font-face {
 	font-family: ProximaNova;
-	src: url("font/proxima_nova.otf");
+	src: url("font/proxima_nova-webfont.woff");
 }
 
 @font-face {
 	font-family: ProximaNovaCondSemi;
-	src: url("font/proxima_nova_condensed_semibold.otf");
+	src: url("font/proxima_nova_condensed_semibold-webfont.woff");
 }
 
 @font-face {
 	font-family: ProximaNovaIt;
-	src: url("font/proxima_nova_italic.otf");
+	src: url("font/proxima_nova_italic-webfont.woff");
 }
 
 @font-face {
 	font-family: ProximaNovaCond;
-	src: url("font/proxima_nova_condensed.otf");
+	src: url("font/proxima_nova_condensed-webfont.woff");
 }
 
 @font-face {
 	font-family: ProximaNovaSemi;
-	src: url("font/proxima_nova_semibold.otf");
+	src: url("font/proxima_nova_semibold-webfont.woff");
 }
 
 @font-face {
 	font-family: ProximaNovaBold;
-	src: url("font/proxima_nova_bold.otf");
+	src: url("font/proxima_nova_bold-webfont.woff");
 }
 
 pre {
@@ -130,11 +132,41 @@ td {
 
 .page {
 	padding: {
-		top: 70px;
-		bottom: 20px;
+		top: 50px;
+		bottom: 0px;
 	}
 	box-sizing: border-box;
 	float: right;
+}
+
+.container-fluid {
+	padding-left: 20px;
+	padding-right: 20px;
+}
+
+.terminal-page, .system-page, .screen-page, .camera-page, .task-page {
+	padding-top: 20px;
+	padding-bottom: 20px;
+	height: 100%
+}
+
+.screen-page.fullscreen {
+	min-width: 100%;
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    position: absolute;
+    padding: 0px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 12;
+	& .double-header {
+		padding-top:2px;
+		padding-bottom:0px;
+		height:initial;
+		margin-bottom: 16px;
+	}
 }
 
 @media (max-width: $screen-xs-max) {
@@ -174,12 +206,16 @@ td {
 }
 
 @media (min-width: $screen-lg-min) {
-	.task-page, .file-page, .settings-page, .plugin-page {
+	.task-page, .file-page, .settings-page, .plugin-page, .debug-page {
 		max-width: 1000px;
 		margin: auto;
 
 		//margin-left: calc((0.5 * (100% - #{$sidebar-width})) - 450px + #{$sidebar-width})
 		float: none !important;
+	}
+	.script-page {
+		max-width: 1200px;
+		margin: auto;
 	}
 }
 

@@ -18,33 +18,43 @@ import {
     ab2str, 
     decompressData,
     encrypt,
-    decrypt
+    decrypt,
+    getTextEncoder,
+    unpackPacket,
+    unpackFrameData,
+    decodeJSON
 } from "./util/crypto"
 
 declare let require: (string) => any
 
-
-if (!TextEncoder) {
-    let encoding = require("text-encoding")
-    TextEncoder = encoding.TextEncoder as typeof TextEncoder
-    TextDecoder = encoding.TextDecoder as typeof TextDecoder
+//let encoderShim = require("text-encoding")
+/*
+if (typeof TextEncoder === "undefined") {
+    self["TextEncoder"] = encoderShim.TextEncoder as typeof TextEncoder
+    self["TextDecoder"] = encoderShim.TextDecoder as typeof TextDecoder
 }
 
 let encoder = new TextEncoder("utf-8")
 let decoder = new TextDecoder("utf-8")
+*/
+
+/*
+let encoder: TextEncoding.TextEncoder
+let decoder: TextEncoding.TextDecoder
+if (typeof TextEncoder === "undefined") {
+    encoder = (new encoderShim.TextEncoder("utf-8") as TextEncoding.TextEncoder)
+    decoder = (new encoderShim.TextDecoder("utf-8") as TextEncoding.TextDecoder)
+}
+else {
+    encoder = new TextEncoder("utf-8")
+    decoder = new TextDecoder("utf-8")
+}
+*/
+let {encoder, decoder} = getTextEncoder()
 
 let pm = postMessage as (any) => void
 
 let handle = getHandler(postMessage, addEventListener)
-
-handle("test", () => {
-    console.log("Started...")
-    let counter = 0;
-    for(let i = 0; i < 600000000; i++) {
-        counter++;
-    }
-    return "successful! " + counter
-})
 
 interface DeserializeArgs {
     key: string,
@@ -59,12 +69,22 @@ handle("deserialize", ({key, iv, ofb, data, type}: DeserializeArgs) => {
         return JSON.parse(data)
     }
 
-    let ret
+    let ret = {} as any
     try {
         ret = JSON.parse(data)
     }
     catch (err) {
-        ret = decrypt(key, iv, data, type, ofb)
+        let dataArray = new Uint8Array(data)
+        let {encryptionMode, endpoint, body} = unpackPacket(dataArray)
+        let decryptedBody = decrypt(key, iv, body, type, encryptionMode)
+        
+        if (endpoint == "screensharedata") {
+            ret.results = unpackFrameData(decryptedBody)
+        }
+        else {
+            ret = decodeJSON(decryptedBody)
+        }
+        ret.endpoint = endpoint
     }
     return ret
 })

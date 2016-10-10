@@ -6,6 +6,7 @@ interface MessageActionFunctions {
     plainMessage(message: string): Message
     processHasBeenKilled(process: KilledProcessInfo): Message
     message(message: Message): Message
+    msg(style: string, text: string): Message
 }
 
 class MessageActions extends AbstractActions implements MessageActionFunctions {
@@ -23,6 +24,9 @@ class MessageActions extends AbstractActions implements MessageActionFunctions {
     }
     message(message: Message) {
         return message
+    }
+    msg(style: string, text: string) {
+        return {style, text}
     }
 }
 
@@ -54,6 +58,7 @@ interface AppActionFunctions {
     setKey(key: string, iv: string): KeyInfo
     setShake(shook: boolean): boolean
     setHost(host: HostInfo): HostInfo
+    setDebugMenu(enabled: boolean): boolean
 }
 
 class AppActions extends AbstractActions implements AppActionFunctions{
@@ -71,6 +76,9 @@ class AppActions extends AbstractActions implements AppActionFunctions{
     }
     setHost(host: HostInfo) {
         return host
+    }
+    setDebugMenu(enabled: boolean) {
+        return enabled
     }
 }
 
@@ -227,6 +235,7 @@ interface TerminalActionFunctions {
     removeTerminal(id: string): string
     output(content: TerminalInfo.Output): TerminalInfo.Output
     addLine(line: string): string
+    expectTerminal(): void
 }
 
 class TerminalActions extends AbstractActions {
@@ -236,9 +245,36 @@ class TerminalActions extends AbstractActions {
             "addTerminal",
             "removeTerminal",
             "output",
-            "addLine"
+            "addLine",
+            "expectTerminal"
         )
     }
 }
 
 export let terminalActions = alt.createActions<TerminalActionFunctions>(TerminalActions)
+
+
+interface ScriptActionFunctions {
+    getAllJobs(jobs: ScriptInfo.Scripts): ScriptInfo.Scripts
+    mergeFromServer(newScript: ScriptInfo.FullScript): ScriptInfo.FullScript
+    mergeLocally(script: ScriptInfo.FullScript): ScriptInfo.FullScript
+    getDaemonStatus(running: boolean): boolean
+    setActive(activeScript: string): string
+    remove(guid: string): string
+}
+
+class ScriptActions extends AbstractActions {
+    constructor(alt: AltJS.Alt) {
+        super(alt)
+        this.generateActions(
+            "getAllJobs",
+            "mergeFromServer",
+            "mergeLocally",
+            "getDaemonStatus",
+            "setActive",
+            "remove"
+        )
+    }
+}
+
+export let scriptActions = alt.createActions<ScriptActionFunctions>(ScriptActions)

@@ -16,9 +16,7 @@ export let screenEvents = {
 */
 
 export function ScreenPage() {
-    return <div className="screen-page" style={{height: "100%"}}>
-        <ScreenShare />
-    </div>
+    return <ScreenShare />
 }
 
 interface ScreenCoordinates {
@@ -29,7 +27,8 @@ interface ScreenCoordinates {
 //let img = new Image()
 
 class ScreenShare extends Component<{}, {
-    hasFrame?: boolean
+    hasFrame?: boolean,
+    maximized?: boolean,
     frame?: string,
     screenWidth?: number,
     screenHeight?: number
@@ -62,13 +61,17 @@ class ScreenShare extends Component<{}, {
             }
         })
         screenEvents.frameData.attach((data: FrameData) => {
+            console.log("frame data")
+            console.log(data)
+            console.log(data.screenBounds)
             this.setState({
-                screenWidth: data.Bounds.Right,
-                screenHeight: data.Bounds.Bottom
+                screenWidth: data.screenBounds.right,
+                screenHeight: data.screenBounds.bottom
             })
         })
-        screenEvents.login.attach(() => {
+        screenEvents.start.attach(() => {
             console.log("login")
+            this.bindKeys()
             tryUntil(() => !!this.state.screenWidth, () => {
                 console.log("try")
                 screenShareApi.requestFrame()
@@ -81,17 +84,23 @@ class ScreenShare extends Component<{}, {
                 screenHeight: 0,
                 hasFrame: false
             })
+            this.unbindKeys()
         })
+    }
+    bindKeys() {
         document.addEventListener("keydown", this.onKeyDown)
         document.addEventListener("keyup", this.onKeyUp)
     }
+    unbindKeys() {
+        document.removeEventListener("keydown", this.onKeyDown)
+        document.removeEventListener("keyup", this.onKeyUp)
+    }
     componentWillUnmount() {
-        helpers.stopScreenShare()
+        screenShareApi.disconnect()
         _.forOwn(screenEvents, (event) => {
             event.detach()
         })
-        document.removeEventListener("keydown", this.onKeyDown)
-        document.removeEventListener("keyup", this.onKeyUp)
+        this.unbindKeys()
     }
     cancelEvents(e: React.SyntheticEvent | Event) {
         e.preventDefault()
@@ -132,7 +141,7 @@ class ScreenShare extends Component<{}, {
             width={screenWidth || "500"}
             height={screenHeight || "500"}
             style={{width: "100%", height: "auto"}}
-            tabIndex="1"
+            tabIndex={1}
             ref={(ref) => {
                 this.canvas = ref
                 if (ref) {
@@ -167,13 +176,58 @@ class ScreenShare extends Component<{}, {
             }}
         />
     }
+    requestFullScreen = (element) => {
+        // Supports most browsers and their versions.
+        var requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullScreen;
+
+        if (requestMethod) { // Native full screen.
+            requestMethod.call(element);
+        }
+    }
+    maximize = () => {
+        this.setState({
+            maximized: true
+        });
+    }
+    restoreSize = () => {
+        this.setState({
+            maximized: false
+        });
+    }
+    resizeButtons = () => {
+        if(this.state.maximized){
+            return <button className="text-button" onClick={this.restoreSize}>
+                <span className="glyphicon glyphicon-resize-small"></span>
+                </button>
+        }else{
+            return <button className="text-button" onClick={this.maximize}>
+                <span className="glyphicon glyphicon-resize-full"></span>
+                </button>                
+        }
+    }
+    goFullScreen = () => {
+        var rd = document.getElementById('remoteDesktop');
+        this.requestFullScreen(rd);
+    }
+    fullScreenButton = () => {
+        return <button className="text-button" onClick={this.goFullScreen}>
+                <span className="glyphicon glyphicon-fullscreen"></span>
+                </button>
+    }
     connected() {
         if (this.state.screenWidth) {
             return <div className="proxima-nova-14">
                 Connected &nbsp; 
                 <span style={{color: "green"}} className="glyphicon glyphicon-record"/>
-                <button className="text-button" onClick={helpers.stopScreenShare}>disconnect</button>
+                <button className="text-button" onClick={screenShareApi.disconnect}>
+                    disconnect
+                </button>
+                &nbsp;
+                {this.resizeButtons()}
+                &nbsp;
+                {this.fullScreenButton()}
             </div>
+
         }
          return <div className="proxima-nova-14">
             Not Connected &nbsp; <span style={{color: "red"}} className="glyphicon glyphicon-record"/>
@@ -181,17 +235,20 @@ class ScreenShare extends Component<{}, {
     }
     frame() {
         if (this.state.screenWidth) {
-            return <div className="fixed">{this.frameImg()}</div>
+            return <div id='remoteDesktop' className="fixed">{this.frameImg()}</div>
         }
         return <Center noHeight style={{flexGrow: 1}}>
             <p>Not connected to Screen Share.</p>
             <button className="btn btn-primary text-button" onClick={() => {
-                helpers.startScreenShare(screenShareApi.login)
+                screenShareApi.start()
             }}>Connect</button>
         </Center>
     }
     render() {
-        return <div className="ulterius-panel" style={{height: "100%"}}>
+        var screenClass = 'screen-page';
+        if (this.state.maximized) screenClass += ' fullscreen';
+        return <div  className={screenClass} style={{height: "100%"}}>
+        <div className="ulterius-panel" style={{height: "100%"}}>
             <div className="double-header">
                 <div>screen share</div>
                 {this.connected()}
@@ -206,6 +263,7 @@ class ScreenShare extends Component<{}, {
                 screenShareApi.requestFrame()
             }}/>
             */}
+        </div>
         </div>
     }
 }

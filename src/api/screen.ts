@@ -1,6 +1,6 @@
 import {screenConnection as sC} from "../socket"
 import {generateKey, decompressData} from "../util/crypto"
-import {base64toArray, arrayToBase64, addImageHeader} from "../util"
+import {base64toArray, arrayToBase64, addImageHeader, endpointMatch} from "../util"
 //import {screenEvents} from "../component/screen"
 import {settingsStore} from "../store"
 import {messageActions} from "../action"
@@ -22,15 +22,28 @@ export let screenEvents = {
     disconnect: new SyncEvent,
     frame: new SyncEvent<ScreenTile>(),
     frameData: new SyncEvent<FrameData>(),
-    login: new SyncEvent
+    start: new SyncEvent
 }
 
 export let screenShareApi = {
-    requestFrame() {
+    start() {
+        console.log(sC.encrypted)
+        sC.callEndpoint("startscreenshare")
+        /*
         sC.send({
-            EventType: "Frame",
-            Action: "Full"
+            endpoint: "startscreenshare",
+            args: []
         })
+        */
+    },
+    requestFrame() {
+        sC.callEndpoint("fullframe")
+        /*
+        sC.send({
+            endpoint: "fullframe",
+            args: []
+        })
+        */
     },
     login() {
         sC.send({
@@ -39,49 +52,37 @@ export let screenShareApi = {
         })
     },
     disconnect() {
-        sC.disconnect()
+        sC.callEndpoint("stopscreenshare")
     },
     mouse: {
         move(PointerX: number, PointerY: number) {
-            sC.sendEvent("Mouse", "Move", {
-                PointerX, PointerY
-            })
+            sC.callEndpoint("mousemove", [PointerY, PointerX])
         },
         leftClick(PointerX: number, PointerY: number) {
-            sC.sendEvent("Mouse", "LeftClick", {
-                PointerX, PointerY
-            })
+            sC.callEndpoint("leftclick")
         },
         rightClick() {
-            sC.sendEvent("Mouse", "RightClick")
+            sC.callEndpoint("rightclick")
         },
         down() {
-            sC.sendEvent("Mouse", "Down")
+            sC.callEndpoint("mousedown")
         },
         up() {
-            sC.sendEvent("Mouse", "Up")
+            sC.callEndpoint("mouseup")
         },
         wheel(delta: number) {
-            sC.sendEvent("Mouse", "Scroll", {
-                delta
-            })
+            sC.callEndpoint("mousescroll", delta)
         }
     },
     keyDown(code: number) {
-        sC.sendEvent("Keyboard", "KeyDown", {
-            KeyCodes: [code]
-        })
+        sC.callEndpoint("keydown", [[code]])
+
     },
     keyUp(code: number) {
-        sC.sendEvent("Keyboard", "KeyUp", {
-            KeyCodes: [code]
-        })
+        sC.callEndpoint("keyup", [[code]])
     }
 }
 
-export function initialize(host, port) {
-    sC.connect(host, port)
-}
 
 export function disconnect() {
     screenEvents.disconnect.post({})
@@ -105,7 +106,8 @@ const packetGuards = {
 
 export function register() {
     sC.fallbackListen(console.log.bind(console))
-    sC.listenKeys<typeof sC>((key, msg) => msg.endpoint && msg.endpoint.toLowerCase() == key.toLowerCase(), {
+    sC.listenKeys<typeof sC>(endpointMatch, {
+        /*
         connectedToScreenShare(msg, sc) {
             sc.unencrypt()
             console.log("Conncetedet to screen share")
@@ -116,6 +118,8 @@ export function register() {
             })
             sc.encrypt(key, iv)
         },
+        */
+        /*
         aesHandshake(msg, sc) {
             console.log("Screen share AES handshake dun.")
             console.log(msg)
@@ -138,24 +142,42 @@ export function register() {
                 }
             }
         },
+        */
+        /*
         login(msg, sc) {
             console.log("login")
             sc.ofb = true
             screenEvents.login.post({})
         },
-        frameData(msg, sc) {
-            let result: FrameData = msg.results
-            let includedFrame = decompressData(new Uint8Array(msg.results.frameData)) 
+        */
+        startScreenShare(result) {
+            console.log(result)
+            if (result.screenStreamStarted) {
+                screenEvents.start.post({})
+            }
+        },
+        stopScreenShare(result) {
+            if (result.streamStopped) {
+                screenEvents.disconnect.post({})
+            }
+        },
+        fullFrame(msg, sc) {
+            let result: FrameData = msg
+            let includedFrame = decompressData(new Uint8Array(result.frameData)) 
             screenEvents.frameData.post(result)
             screenEvents.frame.post({
                 x: 0,
                 y: 0,
                 top: 0,
                 left: 0,
-                bottom: result.Bounds.Bottom,
-                right: result.Bounds.Right,
+                bottom: result.screenBounds.bottom,
+                right: result.screenBounds.right,
                 image: includedFrame
             })
+        },
+        screenShareData(msg: ScreenTile) {
+            console.log("fraem got")
+            screenEvents.frame.post(msg)
         }
     })
     sC.listen(isTile, (msg: ScreenTile, sc) => {

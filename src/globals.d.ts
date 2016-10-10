@@ -67,6 +67,7 @@ declare interface NetInterfaceInfo {
     SupportsMulticast: boolean
 }
 
+
 declare interface SystemInfo {
     cpuUsage: number[],
     cpuTemps: number[],
@@ -178,9 +179,9 @@ declare interface OSInfo {
 }
 */
 declare interface NetworkDeviceInfo {
-    name: string,
-    ip: string,
-    macAddress: string
+    Name: string,
+    Ip: string,
+    MacAddress: string
 }
 
 declare interface NetworkInfo {
@@ -306,42 +307,6 @@ declare interface CamerasRefreshed {
 }
 
 declare namespace SettingsInfo {
-    interface Updated {
-        changedStatus: boolean
-        [key: string]: any
-    }
-    interface WebServerPort extends Updated {
-        WebServerPort: number
-    }
-    interface WebFilePath extends Updated {
-        WebFilePath: string
-    }
-    interface VncPass extends Updated {
-        VncPass: string
-    }
-    interface VncPort extends Updated {
-        VncPort: number
-    }
-    interface VncProxyPort extends Updated {
-        VncProxyPort: number
-    }
-    interface TaskServerPort extends Updated {
-        TaskServerPort: number
-    }
-    interface NetworkResolve extends Updated {
-        SkipHostNameResolve: boolean
-    }
-    interface Settings {
-        UseWebServer: boolean,
-        WebServerPort: number,
-        WebFilePath: string,
-        TaskServerPort: number,
-        SkipHostNameResolve: boolean,
-        VncPort: number,
-        VncProxyPort: number,
-        VncPass: string,
-        AllowTerminal: boolean
-    }
 
     /*
     { "Debug" : { "TraceDebug" : true },
@@ -383,6 +348,7 @@ declare namespace SettingsInfo {
       "WebFilePath" : "C:\\Users\\Frob2\\AppData\\Roaming\\Ulterius\\Ulterius Server\\client\\",
       "WebServerPort" : 22006
     }
+    
 }
 */
 
@@ -402,9 +368,7 @@ declare namespace SettingsInfo {
         MinorRevision: number
     }
 
-    interface Debug {
-        TraceDebug: boolean
-    }
+    interface Debug { TraceDebug: boolean }
 
     interface General {
         ClientIssues: string,
@@ -417,17 +381,13 @@ declare namespace SettingsInfo {
 
     interface Network {
         BindLocal: boolean,
+        UpnpEnabled: boolean,
         SkipHostNameResolve: boolean
     }
 
-    interface Plugins {
-        LoadPlugins: boolean
-    }
+    interface Plugins { LoadPlugins: boolean }
 
-    interface ScreenShare {
-        ScreenSharePass: string,
-        ScreenSharePort: number
-    }
+    interface ScreenShare { ScreenSharePort: number }
 
     interface TaskServer {
         Encryption: boolean,
@@ -435,13 +395,31 @@ declare namespace SettingsInfo {
     }
 
     interface Terminal {
-        AllowTerminal: boolean
+        AllowTerminal: boolean,
+        TerminalPort: number
     }
 
     interface WebServer {
         ToggleWebServer: boolean,
         WebFilePath: string,
         WebServerPort: number
+    }
+
+    interface Webcams {
+        UseWebcams: boolean,
+        WebcamPort: number
+    }
+
+    interface Ports {
+        webServerPort: number,
+        apiPort: number,
+        webcamPort: number,
+        terminalPort: number,
+        screenSharePort: number
+    }
+
+    interface Changed {
+        changedStatus: boolean
     }
 
     interface All {
@@ -452,7 +430,8 @@ declare namespace SettingsInfo {
         ScreenShareService: ScreenShare,
         TaskServer: TaskServer,
         Terminal: Terminal,
-        WebServer: WebServer
+        WebServer: WebServer,
+        Webcams: Webcams
     }
 }
 
@@ -604,6 +583,52 @@ declare interface VncInfo {
     message: string
 }
 
+declare namespace ScriptInfo {
+    interface Script {
+        Name?: string,
+        Type?: string,
+        Schedule?: string
+    }
+    interface Scripts {
+        [guid: string]: Script
+    }
+    interface ProcessedScript extends Script {
+        Guid: string,
+        Base64ScriptContents: string
+    }
+    interface FullScript extends Script {
+        Guid: string,
+        ScriptContents?: string,
+        dirty?: boolean
+    }
+    interface Contents {
+        Id: string,
+        Base64ScriptContents: string,
+        ScriptExist: boolean
+    }
+    interface Updated {
+        AddedOrUpdated: boolean,
+        Message: string,
+        SavedTo: string
+    }
+    interface Removed {
+        Id: string,
+        JobRemoved: boolean,
+        JobExisted: boolean
+    }
+    namespace Daemon {
+        interface Started {
+            Started: boolean
+        }
+        interface Stopped {
+            ShutDown: boolean
+        }
+        interface Status {
+            Online: boolean
+        }
+    }
+}
+
 declare interface WorkerMessage<T> {
     type: string,
     content: T
@@ -628,6 +653,9 @@ declare namespace TerminalInfo {
     interface Created extends Message {
         terminalType: string,
         currentPath: string,
+        terminalId: string
+    }
+    interface Closed extends Message {
         terminalId: string
     }
     interface Output {
@@ -661,15 +689,15 @@ declare interface ScreenTile {
 }
 
 declare interface FrameData {
-    Bounds: {
-        Top: number,
-        Bottom: number,
-        Left: number,
-        Right: number,
-        X: number,
-        Y: number,
-        Height: number,
-        IsEmpty: boolean,
+    screenBounds: {
+        top: number,
+        bottom: number,
+        left: number,
+        right: number,
+        x: number,
+        y: number,
+        height: number,
+        isEmpty: boolean,
     },
     frameData: number[]
 }

@@ -14,22 +14,23 @@ export function register(mC: typeof _mainConnection) {
         getCurrentSettings(settings: SettingsInfo.All) {
             console.log(settings)
             settingsActions.updateAllSettings(settings)
-        }
-    })
-    mC.listen(msg => msg.endpoint && msg.endpoint.indexOf("change") === 0, (msg: SettingsInfo.Updated) => {
-        console.log(msg)
-        if (msg.changedStatus) {
-            messageActions.message({style: "success", text: "Settings updated."})
+        },
+        saveSettings(result: SettingsInfo.Changed) {
+            if (result.changedStatus) {
+                messageActions.message({style: "success", text: "Settings updated."})
+            }
         }
     })
     return {
         getCurrentSettings() {
             mC.send("getCurrentSettings")
         },
-        changeSetting(newSettings) {
+        changeSettings(newSettings) {
+            mC.send("savesettings", btoa(JSON.stringify(newSettings, null, 2)))
+            /*
             _.forOwn(newSettings, (v, k) => {
                 mC.send(getEndpoint(k), v)
-            })
+            }) */
         },
         restartServer() {
             mC.send("restartServer")

@@ -1,7 +1,6 @@
 import * as _ from "lodash"
 import React = require("react")
-
-//global event emitter for components that shouldn't need stores
+import classNames = require("classnames")
 
 export function createSortOnProperty<T>(prop: string, how: string) {
     return function(a: T, b: T) {
@@ -129,6 +128,10 @@ export function noOp() {}
 //for jamming classes
 export function stringIf(condition: boolean, subject: string) {
     return condition ? subject : ""
+}
+
+export function buildClassName(base: string, notEmpty: string, otherwise: string = "") {
+    return !!base ? notEmpty : otherwise
 }
 
 //now this is just pure autism
@@ -434,4 +437,62 @@ export function ifEnter(callback: (e: React.KeyboardEvent) => any) {
             callback(e)
         }
     }
+}
+
+export function split(whole: {[key: string]: any}) {
+    
+}
+
+interface hasClassName {
+    className?: string
+}
+
+export function addClassName<T extends hasClassName>(original: T, newClass: any): T {
+    return _.assign({}, original, {className: classNames(original.className, newClass)}) as T
+}
+
+export function createGuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });
+}
+
+export function replace<T>(
+    arr: T[], 
+    predicate: (T, i?: number, arr?:T[]) => boolean, 
+    replFn: (T, i?: number, arr?:T[]) => T
+) {
+    const matches = arr.filter(predicate)
+    const indexes = matches.map(e => arr.indexOf(e))
+    let newArray = arr.slice()
+    matches.forEach((match, i) => {
+        newArray[indexes[i]] = replFn(match, i, newArray)
+    })
+    return newArray
+}
+
+//immutable add element or assign to existing by predicate
+export function addOrAssign<T>(
+    list: T[],
+    predicate: (T, i?: number, arr?: T[]) => boolean,
+    replFn: (T, found?: boolean, i?: number, arr?: T[]) => any
+) {
+    const matches = list.filter(predicate)
+    const indexes = matches.map(e => list.indexOf(e))
+    let newList = list.slice()
+    matches.forEach((match, i) => {
+        const toAssign = replFn(match, true, i, newList)
+        if (toAssign != undefined) {
+            newList[indexes[i]] = _.assign({}, match, toAssign)
+        }
+        newList[indexes[i]] = _.assign({}, match, replFn(match, true, i, newList))
+    })
+    if (matches.length === 0) {
+        const newElement = replFn({}, false, newList.length, newList)
+        if (newElement != undefined) {
+            newList.push(newElement)
+        }
+    }
+    return newList
 }

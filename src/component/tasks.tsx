@@ -169,7 +169,7 @@ export class Task extends React.Component<
                         <img src={"data:image/png;base64," + this.props.info.Icon} />
                     </td>
                     <td className="task-name">
-                        {this.props.info.Name}
+                        {this.props.info.Name.slice(0, 30)}
                     </td>
                     <td className="task-id" style={{width: 20}}>
                         {this.props.info.Id}
@@ -204,6 +204,7 @@ export class Task extends React.Component<
     }
 }
 
+
 export function TaskPage(props: any) {
     return <div className="task-page" style={{height: "100%"}}>
         <div className="row">
@@ -212,9 +213,7 @@ export function TaskPage(props: any) {
         <div className="row" style={{height: "100%"}}>
             <div className="col-md-7" style={{minHeight: "600px", height: "100%"}}>
                 <Panel className="full-height">
-                    <div className="header">
-                        processes
-                    </div>
+                    <div className="header">processes</div>
                     <div className="fixed dashed-bottom" style={{height: 43}}>
                         <ProcessCreator />
                     </div>
@@ -223,13 +222,10 @@ export function TaskPage(props: any) {
                     </div>
                 </Panel>
             </div>
-            
             <div className="col-md-5 col-collapsed-left">
-                {/*<AutoAffix viewportOffsetTop={15} container={this}>*/}
-                    <div>
-                        <Stats />
-                    </div>
-                {/*</AutoAffix>*/}
+                <div>
+                    <Stats />
+                </div>
             </div>
         </div>
     </div>

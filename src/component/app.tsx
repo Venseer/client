@@ -26,22 +26,48 @@ import {
     LoadingScreen,
     ConnectScreen
 } from "./"
+import {DebugPage} from "./debug"
 import {TerminalPage} from "./terminal"
 import {ScreenPage} from "./screen"
+import {ScriptPage} from "./script"
 import {taskStore, appStore, AppState, userStore, UserState} from "../store"
 import setIntervals from "../interval"
-import {Router, IndexRoute, Route, Link} from 'react-router'
+import {Router, IndexRoute, Route, Link, hashHistory} from 'react-router'
 import {Glyphicon, Button} from "react-bootstrap"
 import {bootstrapSizeMatches} from "../util"
 import {appActions} from "../action"
 import MediaQuery = require("react-responsive")
 
 
+interface Page {
+    route: string,
+    label: string,
+    title: string,
+    icon: string,
+    component: React.ReactType
+}
+
+function newPage(route: string, label: string, icon: string, component: React.ReactType) {
+    return {route, label, title: label, icon, component}
+}
+
+const pages: Page[] = [
+    ["/tasks", "Task Manager", "task.svg", TaskPage],
+    ["/info", "System Information", "stats.svg", SystemPage],
+    ["/cameras", "Cameras", "camera.svg", CameraPage],
+    ["/filesystem", "Filesystem", "filesystem.svg", FilePage],
+    ["/screen", "Screen Share", "screenshare.svg", ScreenPage],
+    ["/terminal", "Terminal", "terminal.svg", TerminalPage],
+    ["/script", "Cron jobs", "cron.png", ScriptPage]
+].map(pg => newPage.apply(null, pg))
+
+const debugPage = newPage("/debug", "API Debug", "terminal.svg", DebugPage)
+
 function NavItem(props: {className: string, path: string, label: string, icon: string}) {
     let {className, path, label, icon} = props
     return <li className={className}>
         <Link to={path}>
-            <img src={require("icon/"+icon+".svg")} />
+            <img src={require("icon/"+icon)} />
             <span className="tab-label">&nbsp; &nbsp; {label}</span>
         </Link>
     </li>
@@ -51,7 +77,10 @@ const fullHeight: React.CSSProperties = {
     height: "100%"
 }
 
-function TopBar({currentPage, children}: {currentPage: string, children?: React.ReactElement<any> | React.ReactElement<any>[]}) {
+function TopBar({currentPage, children}: {
+    currentPage: string, 
+    children?: React.ReactElement<any> | React.ReactElement<any>[]
+}) {
     let items = React.Children.map(children, (child: React.ReactElement<any>) => {
         return React.cloneElement(child, {className: "bar-item"})
     })
@@ -81,7 +110,9 @@ export default class App extends React.Component<{
         "/settings": "Settings",
         "/vnc": "VNC",
         "/screen": "Screen Share",
-        "/terminal": "Terminal"
+        "/terminal": "Terminal",
+        "/debug": "API Debug",
+        "/script": "Cron jobs"
     }
     constructor(props) {
         super(props)
@@ -147,7 +178,7 @@ export default class App extends React.Component<{
                 }} />
         }
         return <div style={fullHeight}>
-            <Sidebar activePath={this.props.location.pathname} />
+            <Sidebar activePath={this.props.location.pathname} debugMenu={this.state.app.debugMenu}/>
             <ModalSettings show={showSettings} />
             <TopBar currentPage={this.pathMap[this.props.location.pathname]}>
                 <div onClick={() => {
@@ -179,7 +210,10 @@ export default class App extends React.Component<{
 }
 
 
-class Sidebar extends React.Component<{activePath: string}, {
+class Sidebar extends React.Component<{
+    activePath: string,
+    debugMenu: boolean
+}, {
     open: boolean
 }> {
     constructor(props) {
@@ -190,10 +224,21 @@ class Sidebar extends React.Component<{activePath: string}, {
         this.setState({open: false})
     }
     getActiveClassName(path: string) {
-          return this.props.activePath == path ? "active" : ""
+          return this.getActive(path) ? "active" : ""
     }
     getActive(path: string) {
-        return this.props.activePath == path
+        return this.props.activePath == path || (this.props.activePath == "/" && path == "/tasks")
+    }
+    debugItem() {
+        if (this.props.debugMenu) {
+            return <NavItem
+                className={this.getActiveClassName("/debug")}
+                path="/debug"
+                icon="terminal.svg"
+                label="API Debug"
+            />
+        }
+        return null
     }
     sidebarContent() {
         return <div className="sidebar col-md-4" data-spy="affix">
@@ -202,6 +247,16 @@ class Sidebar extends React.Component<{activePath: string}, {
             </div>
             <UserWidget />
             <ul className="nav nav-pills nav-stacked">
+                {pages.map(({route, icon, label}) => {
+                    return <NavItem 
+                        className={this.getActiveClassName(route)}
+                        path={route}
+                        icon={icon}
+                        label={label}
+                        key={route}
+                    />
+                })}
+                {/*
                 <NavItem 
                     className={
                         (this.getActive("/tasks") ||
@@ -224,16 +279,6 @@ class Sidebar extends React.Component<{activePath: string}, {
                     path="/filesystem"
                     icon="filesystem"
                     label="Filesystem" />
-                {/*<NavItem 
-                    className={this.getActiveClassName("/plugin")} 
-                    path="/plugin"
-                    icon="plus-sign"
-                    label="Plugins"/>
-                <NavItem 
-                    className={this.getActiveClassName("/settings")} 
-                    path="/settings"
-                    icon="cog"
-                    label="Settings" />*/}
                 <NavItem
                     className={this.getActiveClassName("/screen")}
                     path="/screen"
@@ -244,6 +289,12 @@ class Sidebar extends React.Component<{activePath: string}, {
                     path="/terminal"
                     icon="terminal"
                     label="Terminal" />
+                <NavItem 
+                    className={this.getActiveClassName("/script")}
+                    path="/script"
+                    icon="terminal"
+                    label="Cron jobs" /> */}
+                {this.debugItem()}
             </ul>
         </div>
     }
@@ -294,17 +345,18 @@ const routes = <Route path="/" component={App}>
             <Route path="tasks" component={TaskPage} />
             <Route path="info" component={SystemPage} />
             <Route path="cameras" component={CameraPage} />
-            
             <Route path="filesystem" component={FilePage} />
             <Route path="screen" component={ScreenPage} />
             <Route path="terminal" component={TerminalPage} />
+            <Route path="script" component={ScriptPage} />
+            <Route path="debug" component={DebugPage} />
             {/* <Route path="plugin" component={PluginPage} /> 
             <Route path="settings" component={SettingsPage} />*/}
         </Route>
 
 export class RootRouter extends React.Component<{}, {}> {
     render() {
-        return <Router>
+        return <Router history={hashHistory}>
             {routes}
         </Router>
     }

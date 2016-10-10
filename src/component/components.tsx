@@ -7,7 +7,31 @@ import {systemStore, auxillarySystemStore, userStore} from "../store/system-stor
 import {listen} from "../api-layer"
 import * as _ from "lodash"
 import classNames = require("classnames")
+import {TransitionMotion, spring, presets} from "react-motion"
 
+
+export function Left({children}: {children?: React.ReactNode}) {
+    return React.Children.only(children)
+}
+
+export function Right({children}: {children?: React.ReactNode}) {
+    return React.Children.only(children)
+}
+//export const Left = ({children}: {children: React.ReactNode}) => children
+//export const Right = ({children}: {children: React.ReactNode}) => children
+
+const findChildren = (children: any[], type) => (
+  children.reduce((memo, child) => (
+    child.type === type ? child : memo
+  ), null)
+)
+
+export const Either = ({children}: {children: React.ReactNode}) => {
+    const childArray = React.Children.toArray(children)
+    return _.find(children as any, (child) => child !== " ")
+        ? findChildren(React.Children.toArray(children), Right)
+        : findChildren(React.Children.toArray(children), Left)
+}
 
 export function Bar(props: {value?: number, color?: boolean, style?: any}) {
     let color = function(colored: boolean) {
@@ -170,6 +194,13 @@ export function SlideTransition(props: {children?: any}) {
 }
 
 export class Messages extends React.Component<{}, MessageState> {
+    messageHeight: number = 0
+    constructor(props, context) {
+        super(props, context)
+        this.state = {
+            messages: []
+        }
+    }
     componentDidMount() {
         this.updateMessages(messageStore.getState())
         messageStore.listen(this.updateMessages)
@@ -180,7 +211,15 @@ export class Messages extends React.Component<{}, MessageState> {
     updateMessages = (state) => {
         this.setState(state)
     }
-    
+    willLeave() {
+        return {x: spring(250, presets.noWobble)}
+    }
+    willEnter(initial) {
+        return {
+            x: 250,
+            negativeMargin: 1
+        }
+    }
     render() {
         if (!this.state) {
             return <div className="messages"></div>
@@ -188,21 +227,51 @@ export class Messages extends React.Component<{}, MessageState> {
         let style = {
             zIndex: 9001,
             position: "fixed",
-            
         }
-        return <div style={{
-            zIndex: 9001,
-            position: "fixed",
-            bottom: 10,
-            right: 10
-        }}>
-            <FadeTransition>
+        return <TransitionMotion
+            willLeave={this.willLeave}
+            willEnter={this.willEnter}
+            styles={this.state.messages.map(msg => ({
+                key: String(msg.key),
+                style: {
+                    x: spring(0, presets.noWobble),
+                    negativeMargin: spring(0, presets.noWobble)
+                },
+                data: _.assign({}, msg)
+            }))}
+            
+        >
+            {interpolatedStyles => {
+                return <div style={{
+                    zIndex: 9001,
+                    position: "fixed",
+                    bottom: 10,
+                    right: 10,
+                    width: 220
+                }}>
+                    {interpolatedStyles.map(s => 
+                        <div 
+                            key={s.key} 
+                            ref={ref => {ref && (this.messageHeight = ref.clientHeight)}}
+                            className={"alert alert-" + s.data.style}
+                            style={{
+                                transform: `translateX(${s.style.x || 0}px)`,
+                                marginTop: -((s.style.negativeMargin || 0) * (this.messageHeight + 21))
+                            }}
+                        >
+                            {s.data.text}
+                        </div>
+                    )}
+                </div>
+            }}
+        </TransitionMotion>
+            {/*<FadeTransition>
                 {this.state.messages.map((msg, i) => {
-                    return <Alert key={i} bsStyle={msg.style}>{msg.text}</Alert>
-                
+                    return <div className={"alert alert-" + msg.style}>{msg.text}</div>
+                    //return <Alert key={i} bsStyle={msg.style}>{msg.text}</Alert>
                 })}
-            </FadeTransition>
-        </div>
+            </FadeTransition> */}
+        
     }
 }
 
@@ -217,7 +286,8 @@ export class EntryBox extends React.Component<
         buttonStyle?: string,
         placeholder?: string,
         type?: string,
-        defaultValue?: string
+        defaultValue?: string,
+        list?: string
     }, 
     {text?: string, customized?: boolean}> {
     constructor(props) {
@@ -233,6 +303,7 @@ export class EntryBox extends React.Component<
                 {this.props.buttonText ? this.props.buttonText : false}
             </Button>
         return <Input
+            list={this.props.list}
             type={this.props.type || "text"}
             placeholder={this.props.placeholder || ""}
             buttonAfter={confirmButton}
@@ -250,17 +321,6 @@ export class EntryBox extends React.Component<
         />
     }
 }
-
-/*
-export function LoadingScreen(props: {percentage?: number, children?: string}) {
-    return <div style={{width: "100%", height: "100%"}}>
-        <div style={{position: "absolute", top: "calc(50% - 20px)", left:"calc(50% - 60px)", height: 40, width: 120, textAlign: "center"}}>
-            <Bar value={props.percentage} color={false}/> <br />
-            {props.children}
-        </div>
-    </div>
-}
-*/
 
 export function LoadingScreen(props: {percentage?: number, children?: string}) {
     return <div style={{width: "100%", height: "100%"}}>
@@ -619,3 +679,4 @@ export class DisconnectOverlay extends Component<{}, {
         return null;
     }
 }
+

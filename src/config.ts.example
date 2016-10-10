@@ -1,13 +1,16 @@
-export default {
-    server: "ws://127.0.0.1:22007/",
-    key: "test",
+let productionSettings = {
+    cachePassword: false,
+    autoConnect: false
+}
+
+let devSettings = {
     cachePassword: true,
     autoConnect: {
         port: "22007",
         host: "localhost"
-    },
-    auth: {
-        user: "frob",
-        password: ""
     }
 }
+
+let settings = (process.env.NODE_ENV === "production" ? productionSettings : devSettings)
+
+export default settings
